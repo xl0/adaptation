@@ -73,7 +73,7 @@ for seq1 in seqh1:
 	qs2 = seq2.letter_annotations["phred_quality"]
 	avg2 = sum(qs2) / float(len(qs2))
 
-	print str(seq1.seq)
+#	print str(seq1.seq)
 	annotate_primers(seq1, primers)
 #	annotate_primers(seq2, primers)
 
@@ -81,9 +81,8 @@ for seq1 in seqh1:
 
 	annotate_repeats(seq1, repeat)
 
-	show_features(seq1)
-
-#	annotate_spacers(seq1, tags)
+	annotate_spacers(seq1)
+#	show_features(seq1)
 
 #	annotate_tags(seq2, tags)
 
@@ -93,12 +92,11 @@ for seq1 in seqh1:
 #	SeqIO.write(seq1, wfh, "genbank");
 
 
-	if len(seq1.features) == 0:
-		print "!!!!!!!!!!!!!!!!"
+#	if len(seq1.features) == 0:
+#		print "!!!!!!!!!!!!!!!!"
 
-
-	if i > 1000:
-		break
+	if i % 100 == 0:
+		print i
 
 wfh.close();
 

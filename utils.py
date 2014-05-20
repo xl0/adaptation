@@ -94,10 +94,29 @@ def annotate_repeats(seq, repeat):
 		if position + len(repeat) - 1 < len(seq) and seq_mismatches(repeat.seq, seq.seq, position) < 4:
 			seq.features.append(SeqFeature(
 				FeatureLocation(position, position + len(repeat)),
-				type = "Repeat", id = "", strand = 1))
+				type = "Repeat", id = " ", strand = 1))
 
 		if position + len(repeat) - 1 < len(seq) and seq_mismatches(repeat.seq.reverse_complement(), seq.seq, position) < 4:
 			seq.features.append(SeqFeature(
 				FeatureLocation(position, position + len(repeat)),
-				type = "Repeat", id = "", strand = -1))
+				type = "Repeat", id = " ", strand = -1))
+
+def annotate_spacers(seq):
+
+	repeats = [feature for feature in seq.features if feature.type == "Repeat"]
+
+	# Actually should be sorted already, but sorting a sorted list is cheap, and just in case.
+	repeats = sorted(repeats, key = lambda repeat:repeat.location.start)
+
+	while len(repeats) > 1:
+		seq.features.append(SeqFeature(
+			FeatureLocation(repeats[0].location.end, repeats[1].location.start),
+			type = "Spacer", id = " ", strand = repeats[0].strand));
+		repeats = repeats[1:]
+	
+
+
+
+
+	
 
