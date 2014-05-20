@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 
 from utils import *
 
-
 def usage():
 	print "Usage:"
 	print "\t" + sys.argv[0] + " <file1.fastq[.gz]> <file2.fastq[.gz]>"
@@ -45,6 +44,7 @@ seqh2 = SeqIO.parse(fh2, "fastq", generic_dna)
 
 primers = load_sequences("primers.fasta")
 tags = load_sequences("tags.fasta")
+
 repeat = SeqRecord(Seq("GTTTTAGAGCTATGCTGTTTTGAATGGTCCCAAAAC", generic_dna), id="Repeat");
 
 wfh = open("test.gb", "a");
@@ -78,9 +78,12 @@ for seq1 in seqh1:
 #	annotate_primers(seq2, primers)
 
 	annotate_tags(seq1, tags)
-	show_features(seq1)
 
 	annotate_repeats(seq1, repeat)
+
+	show_features(seq1)
+
+#	annotate_spacers(seq1, tags)
 
 #	annotate_tags(seq2, tags)
 

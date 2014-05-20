@@ -30,7 +30,7 @@ def annotate_primers(seq, primers):
 
 	for primer in primers:
 		# Look for the primer on plus strand.
-		positions = [i for i in range(len(seq.seq)) if seq.seq.startswith(primer.seq[0:4], i)]
+		positions = [i for i in range(len(seq)) if seq.seq.startswith(primer.seq[0:4], i)]
 		for pos in positions:
 			if pos + len(primer) - 1 < len(seq) and seq_mismatches(primer.seq, seq.seq, pos) < 3:
 				seq.features.append(SeqFeature(
@@ -40,7 +40,7 @@ def annotate_primers(seq, primers):
 				
 
 		# Look for the primer on the minus strand.
-		positions = [i for i in range(len(seq.seq)) if seq.seq.startswith(primer.seq.reverse_complement()[0:4], i)]
+		positions = [i for i in range(len(seq)) if seq.seq.startswith(primer.seq.reverse_complement()[0:4], i)]
 		for pos in positions:
 			if pos + len(primer) - 1 < len(seq) and seq_mismatches(primer.seq.reverse_complement(), seq.seq, pos) < 3:
 				seq.features.append(SeqFeature(
@@ -73,12 +73,31 @@ def annotate_tag(seq, tags, start, end, strand):
 def annotate_tags(seq, tags):
 	# We need primers annotated before this
 	for feature in seq.features:
-		if (feature.type == "Primer"):
+		if feature.type == "Primer":
 			annotate_tag(seq, tags,
 				int(feature.location.start),
 				int(feature.location.end),
-				feature.strand);
+				feature.strand)
        			
 def annotate_repeats(seq, repeat):
-	pass
+
+	primer_end = -1
+	for feature in seq.features:
+		if feature.type == "Primer" and feature.strand == 1:
+			primer_end = feature.location.end;
+
+	if primer_end == -1:
+		return	
+
+	positions = [i for i in range(primer_end + 1, len(seq)) if seq.seq.startswith(repeat.seq[0:4], i)]
+	for position in positions:
+		if position + len(repeat) - 1 < len(seq) and seq_mismatches(repeat.seq, seq.seq, position) < 4:
+			seq.features.append(SeqFeature(
+				FeatureLocation(position, position + len(repeat)),
+				type = "Repeat", id = "", strand = 1))
+
+		if position + len(repeat) - 1 < len(seq) and seq_mismatches(repeat.seq.reverse_complement(), seq.seq, position) < 4:
+			seq.features.append(SeqFeature(
+				FeatureLocation(position, position + len(repeat)),
+				type = "Repeat", id = "", strand = -1))
 
