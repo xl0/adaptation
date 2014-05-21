@@ -1,5 +1,7 @@
 
 from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation
 
 def show_features(seq):
@@ -101,7 +103,17 @@ def annotate_repeats(seq, repeat):
 	if primer_end == -1:
 		return	
 
-	positions = [i for i in range(primer_end + 1, len(seq)) if seq.seq.startswith(repeat.seq[0:4], i)]
+
+	# Repeats are polyndromic on the ends - no need to chech RC.
+	positions = []
+	start = 0
+	while True:
+		start = seq.seq.find(repeat.seq[0:4], start)
+		if start == -1:
+			break
+		positions.append(start)
+		start = start + 1
+
 	for position in positions:
 		if position + len(repeat.seq) - 1 < len(seq) and seq_mismatches(repeat.seq, seq.seq, position) < 4:
 			seq.features.append(SeqFeature(
@@ -127,8 +139,27 @@ def annotate_spacers(seq):
 		repeats = repeats[1:]
 	
 
+def extract_spacers(seq):
 
+	primer = tag = ""
 
+	for feature in seq.features:
+		if feature.type == "Primer" and feature.strand == 1:
+			primer = feature.ref
+		if feature.type == "Tag" and feature.strand == 1:
+			tag = feature.ref
 
+	if not primer or not tag:
+		return []
+
+	spacers = []
+
+	for feature in seq.features:
+		if feature.type == "Spacer":
+			spacer_seq = seq.seq[feature.location.start:feature.location.end]
+			if primer[0] == "R":
+				spacer_seq = spacer_seq.reverse_complement()
 	
+			spacers.append(SeqRecord(spacer_seq, id = seq.id, name = tag, description=""))
+	return spacers
 

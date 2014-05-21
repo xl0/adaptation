@@ -17,7 +17,7 @@ import pstats
 
 def usage():
 	print "Usage:"
-	print "\t" + sys.argv[0] + " <file1.fastq[.gz]> <file2.fastq[.gz]>"
+	print "\t" + sys.argv[0] + " <read1.fastq[.gz]> <read2.fastq[.gz]> <output.fastq>"
 
 def open_maybe_gzip(filename):
 	fh = gzip.open(filename)
@@ -34,14 +34,10 @@ def open_maybe_gzip(filename):
 
 	return fh
 
-def main(seqh1, seqh2):
-
+def main(seqh1, seqh2, out_fh):
 	primers = get_primers()
 	tags = get_tags()
 	repeat = get_repeat()
-
-
-	wfh = open("test.gb", "a");
 
 	print "Primers:"
 	for primer in primers:
@@ -50,7 +46,6 @@ def main(seqh1, seqh2):
 	print "Tags:"
 	for tag in tags:
 		print str(tag.seq)
-
 
 	i = 0
 	nseq_primer = 0
@@ -61,45 +56,26 @@ def main(seqh1, seqh2):
 		seq1.name = seq1.id = "R1_" + str(i)
 		seq2.name = seq2.id = "R2_" + str(i)
 
-#		qs1 = seq1.letter_annotations["phred_quality"]
-#		avg1 = sum(qs1) / float(len(qs1))
-
-#		qs2 = seq2.letter_annotations["phred_quality"]
-#		avg2 = sum(qs2) / float(len(qs2))
-
 #		print str(seq1.seq)
 		annotate_primers(seq1, primers)
 	#	annotate_primers(seq2, primers)
 
 		annotate_tags(seq1, tags)
-
 		annotate_repeats(seq1, repeat)
-
 		annotate_spacers(seq1)
 #		show_features(seq1)
 
-	#	annotate_tags(seq2, tags)
+		spacers = extract_spacers(seq1)
+		print spacers
 
-	#	print seq1.id
-	#	show_features(seq1)
-
-	#	SeqIO.write(seq1, wfh, "genbank");
-
-
-	#	if len(seq1.features) == 0:
-	#		print "!!!!!!!!!!!!!!!!"
-
-		if i % 100 == 0:
+		if i % 1000 == 0:
 			print i
 
-#		if i > 1000:
-#			break;
-
-	wfh.close();
+		if i > 10000:
+			return
 
 
-
-if (len(sys.argv) != 3) :
+if (len(sys.argv) != 4):
 	usage()
 	exit(0)
 
@@ -109,7 +85,10 @@ seqh1 = SeqIO.parse(fh1, 'fastq', generic_dna)
 fh2 = open_maybe_gzip(sys.argv[2])
 seqh2 = SeqIO.parse(fh2, "fastq", generic_dna)
 
-main(seqh1, seqh2)
+fh3 = open(sys.argv[3], "a+")
+fh3.truncate()
+
+main(seqh1, seqh2, fh3)
 
 #cProfile.run('main(seqh1, seqh2)', 'bzz')
 #p = pstats.Stats('bzz')
