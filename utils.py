@@ -2,15 +2,6 @@
 from Bio import SeqIO
 from Bio.SeqFeature import SeqFeature, FeatureLocation
 
-def load_sequences(filename):
-	fh = open(filename, "r")
-	
-	sequences = []
-	for seq in SeqIO.parse(fh, "fasta"):
-		sequences.append(seq)
-	
-	return sequences
-
 def show_features(seq):
 	for feature in seq.features:
 		print "\t", str(feature.location), ":", feature.type, feature.ref, seq.seq[feature.location.start:feature.location.end]
@@ -30,21 +21,43 @@ def annotate_primers(seq, primers):
 
 	for primer in primers:
 		# Look for the primer on plus strand.
-		positions = [i for i in range(len(seq)) if seq.seq.startswith(primer.seq[0:4], i)]
+#		positions = [i for i in range(len(seq)) if seq.seq.startswith(primer.seq[0:4], i)]
+
+
+		positions = []
+		start = 0
+		# XXX Rewrite in python-y way.
+		while True:
+#			print start
+			start = seq.seq.find(primer.seq[0:4], start)
+			if start == -1:
+				break
+			positions.append(start)
+			start = start + 1
+
 		for pos in positions:
-			if pos + len(primer) - 1 < len(seq) and seq_mismatches(primer.seq, seq.seq, pos) < 3:
+			if pos + len(primer.seq) - 1 < len(seq) and seq_mismatches(primer.seq, seq.seq, pos) < 3:
 				seq.features.append(SeqFeature(
-					FeatureLocation(pos, pos + len(primer)),
+					FeatureLocation(pos, pos + len(primer.seq)),
 					type = "Primer", ref = primer.id, strand = +1)
 							)
 				
 
 		# Look for the primer on the minus strand.
-		positions = [i for i in range(len(seq)) if seq.seq.startswith(primer.seq.reverse_complement()[0:4], i)]
+#		positions = [i for i in range(len(seq)) if seq.seq.startswith(primer.reverse_complement[0:4], i)]
+		positions = []
+		start = 0
+		while True:
+			start = seq.seq.find(primer.reverse_complement[0:4], start)
+			if start == -1:
+				break
+			positions.append(start)
+			start = start + 1
+
 		for pos in positions:
-			if pos + len(primer) - 1 < len(seq) and seq_mismatches(primer.seq.reverse_complement(), seq.seq, pos) < 3:
+			if pos + len(primer.seq) - 1 < len(seq) and seq_mismatches(primer.reverse_complement, seq.seq, pos) < 3:
 				seq.features.append(SeqFeature(
-					FeatureLocation(pos, pos + len(primer)),
+					FeatureLocation(pos, pos + len(primer.seq)),
 					type = "Primer", ref = primer.id, strand = -1)
 							)
 
@@ -80,7 +93,6 @@ def annotate_tags(seq, tags):
 				feature.strand)
        			
 def annotate_repeats(seq, repeat):
-
 	primer_end = -1
 	for feature in seq.features:
 		if feature.type == "Primer" and feature.strand == 1:
@@ -91,14 +103,14 @@ def annotate_repeats(seq, repeat):
 
 	positions = [i for i in range(primer_end + 1, len(seq)) if seq.seq.startswith(repeat.seq[0:4], i)]
 	for position in positions:
-		if position + len(repeat) - 1 < len(seq) and seq_mismatches(repeat.seq, seq.seq, position) < 4:
+		if position + len(repeat.seq) - 1 < len(seq) and seq_mismatches(repeat.seq, seq.seq, position) < 4:
 			seq.features.append(SeqFeature(
-				FeatureLocation(position, position + len(repeat)),
+				FeatureLocation(position, position + len(repeat.seq)),
 				type = "Repeat", id = " ", strand = 1))
 
-		if position + len(repeat) - 1 < len(seq) and seq_mismatches(repeat.seq.reverse_complement(), seq.seq, position) < 4:
+		if position + len(repeat.seq) - 1 < len(seq) and seq_mismatches(repeat.reverse_complement, seq.seq, position) < 4:
 			seq.features.append(SeqFeature(
-				FeatureLocation(position, position + len(repeat)),
+				FeatureLocation(position, position + len(repeat.seq)),
 				type = "Repeat", id = " ", strand = -1))
 
 def annotate_spacers(seq):
