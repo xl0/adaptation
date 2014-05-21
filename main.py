@@ -47,7 +47,7 @@ def main(seqh1, seqh2, out_fh):
 	for tag in tags:
 		print str(tag.seq)
 
-	i = 0
+	s = i = 0
 	nseq_primer = 0
 	for seq1 in seqh1:
 		i = i + 1
@@ -66,12 +66,19 @@ def main(seqh1, seqh2, out_fh):
 #		show_features(seq1)
 
 		spacers = extract_spacers(seq1)
-		print spacers
+
+		for spacer in spacers:
+#			print str(spacer.seq)
+#			print sum(spacer.letter_annotations["phred_quality"]) / float(len(spacer.letter_annotations["phred_quality"]))
+			s = s + 1
+			SeqIO.write(spacer, out_fh, "fastq")
+
 
 		if i % 1000 == 0:
 			print i
 
 		if i > 10000:
+			print s
 			return
 
 
@@ -89,6 +96,11 @@ fh3 = open(sys.argv[3], "a+")
 fh3.truncate()
 
 main(seqh1, seqh2, fh3)
+
+fh3.close()
+fh2.close()
+fh1.close()
+
 
 #cProfile.run('main(seqh1, seqh2)', 'bzz')
 #p = pstats.Stats('bzz')

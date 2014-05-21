@@ -9,7 +9,7 @@ def show_features(seq):
 		print "\t", str(feature.location), ":", feature.type, feature.ref, seq.seq[feature.location.start:feature.location.end]
 
 
-# Calculate Hammind distance. Source: http://en.wikipedia.org/wiki/Hamming_distance
+# Calculate Hamming distance. Source: http://en.wikipedia.org/wiki/Hamming_distance
 def hamming_distance(s1, s2):
 	if len(s1) != len(s2):
 		raise ValueError("Undefined for sequences of unequal length")
@@ -23,30 +23,27 @@ def annotate_primers(seq, primers):
 
 	for primer in primers:
 		# Look for the primer on plus strand.
-#		positions = [i for i in range(len(seq)) if seq.seq.startswith(primer.seq[0:4], i)]
-
-
 		positions = []
 		start = 0
+
+		# Make a list of possible start positions - matching the first 4 letters
 		# XXX Rewrite in python-y way.
 		while True:
-#			print start
 			start = seq.seq.find(primer.seq[0:4], start)
 			if start == -1:
 				break
 			positions.append(start)
 			start = start + 1
 
+		# Now actually compare the whole primer with the candidate
 		for pos in positions:
 			if pos + len(primer.seq) - 1 < len(seq) and seq_mismatches(primer.seq, seq.seq, pos) < 3:
 				seq.features.append(SeqFeature(
 					FeatureLocation(pos, pos + len(primer.seq)),
 					type = "Primer", ref = primer.id, strand = +1)
 							)
-				
 
 		# Look for the primer on the minus strand.
-#		positions = [i for i in range(len(seq)) if seq.seq.startswith(primer.reverse_complement[0:4], i)]
 		positions = []
 		start = 0
 		while True:
@@ -157,9 +154,10 @@ def extract_spacers(seq):
 	for feature in seq.features:
 		if feature.type == "Spacer":
 			spacer_seq = seq.seq[feature.location.start:feature.location.end]
+			spacer_q = seq.letter_annotations["phred_quality"][feature.location.start:feature.location.end]
 			if primer[0] == "R":
 				spacer_seq = spacer_seq.reverse_complement()
+				spacer_q.reverse()
 	
-			spacers.append(SeqRecord(spacer_seq, id = seq.id, name = tag, description=""))
+			spacers.append(SeqRecord(spacer_seq, id = seq.id, name = tag, description=tag, letter_annotations = {'phred_quality' : spacer_q}))
 	return spacers
-
