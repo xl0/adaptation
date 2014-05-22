@@ -1,9 +1,10 @@
 #!/usr/bin/env python2.7
 
 import sys
-import gzip
 from Bio import SeqIO
 from Bio.Seq import Seq
+from utils import *
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -16,7 +17,7 @@ if (len(sys.argv) != 2) :
 	usage();
 	exit(0);
 
-fh = gzip.open(sys.argv[1], "r");
+fh = open_maybe_gzip(sys.argv[1])
 seqh = SeqIO.parse(fh, 'fastq');
 
 

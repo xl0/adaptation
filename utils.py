@@ -1,12 +1,61 @@
 
+import re
+import gzip
+import subprocess
+
+from StringIO import StringIO
+from Bio import AlignIO
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation
 
+from Bio.Emboss.Applications import WaterCommandline
+
+def open_maybe_gzip(filename):
+	fh = gzip.open(filename)
+	try:
+		tmp = fh.readline()
+	except IOError:
+		fh.close()
+		fh = open(filename)
+
+		return fh
+
+	fh.close();
+	fh = gzip.open(filename)
+
+	return fh
+
+def sort_features(seq):
+	seq.features = sorted(seq.features, key = lambda feature: int(feature.location.start))
+
+def show_feature_type(seq, type,):
+	feature_idx = 0
+	cursor = 0
+	string = ""
+
+	string += type[0:3] + ": "
+	for feature in seq.features:
+		if feature.type == type:
+			string += " " * (feature.location.start - cursor)
+			string += str(seq.seq[feature.location.start:feature.location.end])
+			cursor = feature.location.end
+	
+	print string
+
 def show_features(seq):
 	for feature in seq.features:
 		print "\t", str(feature.location), ":", feature.type, feature.ref, seq.seq[feature.location.start:feature.location.end]
+
+def show_sequence(seq):
+	sort_features(seq)
+	show_feature_type(seq, "Tag")
+	show_feature_type(seq, "Primer")
+	print "Seq: " + str(seq.seq)
+	show_feature_type(seq, "Spacer")
+	show_feature_type(seq, "Repeat")
+	show_features(seq)
 
 
 # Calculate Hamming distance. Source: http://en.wikipedia.org/wiki/Hamming_distance
@@ -65,31 +114,38 @@ def annotate_tag(seq, tags, start, end, strand):
 		end = start
 		start = start - 3;
 		if start < 0:
-			return
+			return None
 
 		seq_str = str(seq.seq[start:end])
 	else:
 		start = end
 		end = end + 3
 		if end > len(seq.seq):
-			return
+			return None
 
 		seq_str = str(seq.seq[start:end].reverse_complement())
 
 	for tag in tags:
-		if str(tag.seq) == seq_str:
+		if tag.seq == seq_str:
 			seq.features.append(SeqFeature(
 				FeatureLocation(start, end), type="Tag",
 				ref=tag.id, strand = strand))
+			return tag
+	return None
 
 def annotate_tags(seq, tags):
+	found_tags = []
 	# We need primers annotated before this
 	for feature in seq.features:
 		if feature.type == "Primer":
-			annotate_tag(seq, tags,
-				int(feature.location.start),
-				int(feature.location.end),
-				feature.strand)
+			new_tag = None
+			new_tag = annotate_tag(seq, tags,
+					int(feature.location.start),
+					int(feature.location.end),
+					feature.strand)
+			if new_tag:
+				found_tags.append(new_tag)
+	return found_tags
        			
 def annotate_repeats(seq, repeat):
 	primer_end = -1
@@ -161,3 +217,45 @@ def extract_spacers(seq):
 	
 			spacers.append(SeqRecord(spacer_seq, id = seq.id, name = tag, description=tag, letter_annotations = {'phred_quality' : spacer_q}))
 	return spacers
+
+
+#def squash_seqs(seqh)
+	
+
+def parse_water(lines):
+	i = 0
+	for line in lines:
+		print i, line
+		i = i + 1
+
+
+	m = re.search('[1-9][0-9]',lines[26])
+	score = int(m.group(0))
+	#parse the position
+	positions = map(lambda x: int(x)-1,re.findall('[0-9]+',lines[33]))
+	posQuery = map(lambda x: int(x)-1,re.findall('[0-9]+',lines[31]))
+	if posQuery[0] > 0: #If there is a mismatch on the last base of the spacer, makes sure that the position is still correct for the PAM identification
+		positions[0]-=posQuery[0]
+
+	return score, positions
+
+
+def water(seq, refseq_file):
+	cmdline = WaterCommandline(asequence=refseq_file, bsequence="asis:"+str(seq.seq),
+					gapopen=10, gapextend=0.5, outfile="stdout")
+
+
+	cmdline_rc = WaterCommandline(asequence=refseq_file, bsequence="asis:"+str(seq.seq.reverse_complement()),
+					gapopen=10, gapextend=0.5, outfile="stdout")
+
+	stdout, stderr = cmdline()
+	stdout_rc, stderr_rc = cmdline_rc()
+
+	score, positions = parse_water(stdout.splitlines())
+	score_rc, positions_rc = parse_water(stdout_rc.splitlines())
+	
+	if score > score_rc:
+		return score, positions, 1
+	else:
+		return score_rc, positions_rc, -1
+
