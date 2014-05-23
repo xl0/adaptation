@@ -41,8 +41,8 @@ def show_feature_type(seq, type,):
 			string += " " * (feature.location.start - cursor)
 			string += str(seq.seq[feature.location.start:feature.location.end])
 			cursor = feature.location.end
-	
-	print string
+	if cursor > 0:
+		print string
 
 def show_features(seq):
 	for feature in seq.features:
@@ -192,17 +192,15 @@ def annotate_spacers(seq):
 		repeats = repeats[1:]
 	
 
-def extract_spacers(seq):
+def extract_spacers(seq, tag):
 
 	primer = tag = ""
 
 	for feature in seq.features:
 		if feature.type == "Primer" and feature.strand == 1:
 			primer = feature.ref
-		if feature.type == "Tag" and feature.strand == 1:
-			tag = feature.ref
 
-	if not primer or not tag:
+	if not primer:
 		return []
 
 	spacers = []

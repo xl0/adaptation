@@ -1,0 +1,6 @@
+*.fasta
+*.fastq
+*.seq
+*.gb
+*.txt
+.*
