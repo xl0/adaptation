@@ -238,22 +238,31 @@ def parse_water(lines):
 	return score, positions
 
 
-def water(seq, refseq_file):
-	cmdline = WaterCommandline(asequence=refseq_file, bsequence="asis:"+str(seq.seq),
-					gapopen=10, gapextend=0.5, outfile="stdout")
+def align(spacer, refseq):
+
+	cmdline = "stdin asis:%s -gapopen=2 -gapextend=2 stdout" % str(spacer.seq)
 
 
-	cmdline_rc = WaterCommandline(asequence=refseq_file, bsequence="asis:"+str(seq.seq.reverse_complement()),
-					gapopen=10, gapextend=0.5, outfile="stdout")
+	child = subprocess.Popen(["water", "stdin", "asis:" + str(spacer.seq), "-gapopen=10", "-gapextend=0.5", "stdout"],
+					stdin = subprocess.PIPE,
+					stdout = subprocess.PIPE,
+					stderr = subprocess.PIPE,
+					)
+	stdout, stderr = child.communicate(refseq)
+	print stdout, stderr
 
-	stdout, stderr = cmdline()
-	stdout_rc, stderr_rc = cmdline_rc()
-
-	score, positions = parse_water(stdout.splitlines())
-	score_rc, positions_rc = parse_water(stdout_rc.splitlines())
 	
-	if score > score_rc:
-		return score, positions, 1
-	else:
-		return score_rc, positions_rc, -1
+
+	
+
+#	stdout, stderr = cmdline()
+#	stdout_rc, stderr_rc = cmdline_rc()
+
+#	score, positions = parse_water(stdout.splitlines())
+#	score_rc, positions_rc = parse_water(stdout_rc.splitlines())
+	
+#	if score > score_rc:
+#		return score, positions, 1
+#	else:
+#		return score_rc, positions_rc, -1
 

@@ -54,7 +54,6 @@ def main(seqh1, seqh2, out_file_base):
 	stats["tags"] = tags
 	stats["primers"] = primers
 
-	q = []
 	s = i = 0
 	nseq_primer = 0
 
@@ -71,8 +70,8 @@ def main(seqh1, seqh2, out_file_base):
 		if i % 1000 == 0:
 			print i
 
-		if i > 10000:
-			break
+#		if i > 10000:
+#			break
 
 		seq2 = seqh2.next()
 		seq1.name = seq1.id = "R1_" + str(i)
@@ -121,7 +120,6 @@ def main(seqh1, seqh2, out_file_base):
 			show_sequence(seq2)
 
 		for spacer in spacers:
-			q.append(sum(spacer.letter_annotations["phred_quality"]) / float(len(spacer.letter_annotations["phred_quality"])))
 			SeqIO.write(spacer, out_files[utags1[0].seq], "fastq")
 
 	print "R1: Multi-tag: %d, Tag mismatch: %d (%d %%)" % (multi_tag1, mismatch1, (mismatch1 * 100) / multi_tag1)
@@ -133,9 +131,6 @@ def main(seqh1, seqh2, out_file_base):
 		fh.close()
 	out_file_all.close()
 	out_file_none.close()
-
-#	plt.hist(q, range(1,1000))
-#	plt.show()
 
 if (len(sys.argv) != 4):
 	usage()
