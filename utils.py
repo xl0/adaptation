@@ -217,52 +217,48 @@ def extract_spacers(seq, tag):
 	return spacers
 
 
-#def squash_seqs(seqh)
-	
+def parse_water(stdout):
 
-def parse_water(lines):
+#	print stdout
+	lines = stdout.splitlines()
+
 	i = 0
-	for line in lines:
-		print i, line
-		i = i + 1
-
-
-	m = re.search('[1-9][0-9]',lines[26])
+	m = re.search('[1-9]+',lines[27])
 	score = int(m.group(0))
-	#parse the position
-	positions = map(lambda x: int(x)-1,re.findall('[0-9]+',lines[33]))
-	posQuery = map(lambda x: int(x)-1,re.findall('[0-9]+',lines[31]))
-	if posQuery[0] > 0: #If there is a mismatch on the last base of the spacer, makes sure that the position is still correct for the PAM identification
-		positions[0]-=posQuery[0]
 
-	return score, positions
+	#parse the position
+	query_position = map(lambda x: int(x),re.findall('[0-9]+',lines[32]))
+	sequence_position = map(lambda x: int(x),re.findall('[0-9]+',lines[34]))
+
+	sequence_position[0] -= 1
+	query_position[0] -= 1
+
+	return score, query_position, sequence_position
 
 
 def align(spacer, refseq):
 
-	cmdline = "stdin asis:%s -gapopen=2 -gapextend=2 stdout" % str(spacer.seq)
 
+#	print len(spacer), str(spacer.seq)
 
-	child = subprocess.Popen(["water", "stdin", "asis:" + str(spacer.seq), "-gapopen=10", "-gapextend=0.5", "stdout"],
-					stdin = subprocess.PIPE,
-					stdout = subprocess.PIPE,
-					stderr = subprocess.PIPE,
-					)
-	stdout, stderr = child.communicate(refseq)
-	print stdout, stderr
+	args = [
+			"water",
+			"stdin",
+			"asis:" + str(spacer.seq),
+			"-gapopen=10",
+			"-gapextend=10",
+			"-datafile=water_score_matrix.txt",
+			"stdout"
+	]
 
+	child = subprocess.Popen(args, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+	stdout, stderr = child.communicate(str(refseq.seq))
+#	print stdout
+	if not child.returncode == 0:
+		raise subprocess.CalledProcessError
+
+	score, pos_query, position = parse_water(stdout)
+#	print score, pos_query, position
+
+	return score, pos_query, position
 	
-
-	
-
-#	stdout, stderr = cmdline()
-#	stdout_rc, stderr_rc = cmdline_rc()
-
-#	score, positions = parse_water(stdout.splitlines())
-#	score_rc, positions_rc = parse_water(stdout_rc.splitlines())
-	
-#	if score > score_rc:
-#		return score, positions, 1
-#	else:
-#		return score_rc, positions_rc, -1
-
