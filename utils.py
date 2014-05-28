@@ -244,7 +244,7 @@ def align(spacer, refseq):
 	args = [
 			"water",
 			"stdin",
-			"asis:" + str(spacer.seq),
+			"asis:" + str(spacer),
 			"-gapopen=10",
 			"-gapextend=10",
 			"-datafile=water_score_matrix.txt",
@@ -252,7 +252,7 @@ def align(spacer, refseq):
 	]
 
 	child = subprocess.Popen(args, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-	stdout, stderr = child.communicate(str(refseq.seq))
+	stdout, stderr = child.communicate(str(refseq))
 #	print stdout
 	if not child.returncode == 0:
 		raise subprocess.CalledProcessError

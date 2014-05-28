@@ -90,7 +90,7 @@ def main(seqh, dbs):
 			if found or len(db_seq) > 50000:
 				break
 
-			score, pos_db, pos_seq = align(seq, db_seq)
+			score, pos_db, pos_seq = align(seq.seq, db_seq.seq)
 
 			# Score is 5 * len, -5 for a mismatch, -10 for a gap
 			# Let's allow up to 4 mismatches, or 2 gaps (20 points penalty)
@@ -98,7 +98,7 @@ def main(seqh, dbs):
 			penalty = len(seq) * 5 - score
 
 			if (penalty <= 20):
-				# Accptable match. Make sure we account for the firsr and last BP(s) in
+				# Acceptable match. Make sure we account for the firsr and last BP(s) in
 				# case the mismatch was there.
 
 
@@ -109,6 +109,26 @@ def main(seqh, dbs):
 				length = pos_db[1] + tail_correction - (pos_db[0] - head_correction)
 
 				db_spacers[(pos_db[0] - head_correction, 1, length , penalty / 5, str(seq.seq))] += 1
+
+
+			score, pos_db, pos_seq = align(seq.seq.reverse_complement(), db_seq.seq)
+			# Score is 5 * len, -5 for a mismatch, -10 for a gap
+			# Let's allow up to 4 mismatches, or 2 gaps (20 points penalty)
+
+			penalty = len(seq) * 5 - score
+
+			if (penalty <= 20):
+				# Acceptable match. Make sure we account for the firsr and last BP(s) in
+				# case the mismatch was there.
+
+
+				head_correction = -pos_seq[0]
+				tail_correction = len(seq) - pos_seq[1]
+				mismatch += 1
+
+				length = pos_db[1] + tail_correction - (pos_db[0] - head_correction)
+
+				db_spacers[(pos_db[0] - head_correction, -1, length , penalty / 5, str(seq.seq))] += 1
 
 
 	print "%d spacers found out of %d sequences (%d %%)" % (match + mismatch, nseq, (mismatch + match) * 100 / nseq)
