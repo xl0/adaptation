@@ -70,8 +70,6 @@ def seq_mismatches(subseq, seq, pos = 0):
 
 def annotate_primers(seq, primers):
 
-	primer_list = []
-
 	for primer in primers:
 		# Look for the primer on plus strand.
 		positions = []
@@ -92,7 +90,6 @@ def annotate_primers(seq, primers):
 				seq.features.append(SeqFeature(
 					FeatureLocation(pos, pos + len(primer.seq)),
 					type = "Primer", ref = primer.id, strand = +1))
-				primer_list.append((primer.id, str(seq.seq[pos:pos + len(primer.seq)])))
 
 		# Look for the primer on the minus strand.
 		positions = []
@@ -109,7 +106,6 @@ def annotate_primers(seq, primers):
 				seq.features.append(SeqFeature(
 					FeatureLocation(pos, pos + len(primer.seq)),
 					type = "Primer", ref = primer.id, strand = -1))
-				primer_list.append((primer.id, str(seq.seq[pos:pos + len(primer.seq)])))
 
 def annotate_tag(seq, tags, start, end, strand):
 	if strand == 1:

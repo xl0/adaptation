@@ -68,8 +68,8 @@ def main(seqh1, seqh2, out_file_base):
 		if i % 1000 == 0:
 			print i
 
-		if i > 10000:
-			break
+#		if i > 10000:
+#			break
 
 		seq2 = seqh2.next()
 		seq1.name = seq1.id = "R1_" + str(i)
