@@ -27,11 +27,11 @@ i = 0;
 for seq in seqh:
 	i = i + 1;
 
-	qscore = seq.letter_annotations["phred_quality"];
-	average = sum(qscore) / float(len(qscore))
+#	qscore = seq.letter_annotations["phred_quality"];
+#	average = sum(qscore) / float(len(qscore))
 
-	averages.append(average);
-	if not (i % 100000):
+#	averages.append(average);
+	if not (i % 1000):
 		print i;
 
 

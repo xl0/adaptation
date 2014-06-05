@@ -13,10 +13,6 @@ from sequences import *
 import cProfile
 import pstats
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-
-
 
 def usage():
 	print "Usage:"
@@ -65,13 +61,15 @@ def main(seqh1, seqh2, out_file_base):
 	global_mismatch = 0
 	total_mismatch = 0
 
+	n_perfect_spacer = 0
+
 	for seq1 in seqh1:
 		i = i + 1
 		if i % 1000 == 0:
 			print i
 
-#		if i > 10000:
-#			break
+		if i > 10000:
+			break
 
 		seq2 = seqh2.next()
 		seq1.name = seq1.id = "R1_" + str(i)
@@ -91,6 +89,11 @@ def main(seqh1, seqh2, out_file_base):
 		annotate_spacers(seq1)
 		annotate_spacers(seq2)
 
+#		print "==="
+#		show_sequence(seq1)
+#		print "---"
+#		show_sequence(seq2)
+
 		# Unique tags
 		utags1 = list(set(found_tags1))
 		if len(utags1) > 1:
@@ -106,26 +109,34 @@ def main(seqh1, seqh2, out_file_base):
 		if len(utags1) == 1 and len(utags2) == 1 and not utags1[0] == utags2[0]:
 			global_mismatch += 1
 
+		# If we get an abnormal number of tags, or the tags do not match, skip this pair.
 		if not len(utags1) == 1 or not len(utags2) == 1 or not utags1[0] == utags2[0]:
 			total_mismatch += 1
 			continue
 
-		spacers1 = extract_spacers(seq1, utags1[0])
-		spacers2 = extract_spacers(seq2, utags2[0])
+		spacers = extract_spacers(seq1, utags1[0]) + extract_spacers(seq2, utags2[0])
 
-		spacers = spacers1 + spacers2
-		if len(spacers) > 3:
+		if len(spacers) > 2:
 			print "WTF? %d spacers?" % len(spacers)
 			show_sequence(seq1)
 			show_sequence(seq2)
 
-		for spacer in spacers:
-			SeqIO.write(spacer, out_files[utags1[0].seq], "fastq")
+		# If we got exactly 2 spacers, see if they have the same sequence.
+		if len(spacers) == 2:
+			if len(spacers[0]) == len(spacers[1]):
+				# Let's allow up to 3 mismatches, and no insertions/deletions.
+				if(seq_mismatches(spacers[0], spacers[1]) <= 3):
+					spacer = ambiguous_merge(spacers[0], spacers[1])
+					SeqIO.write(spacer, out_files[utags1[0].seq], "fastq")
+					n_perfect_spacer += 1
+
+
 
 	print "R1: Multi-tag: %d, Tag mismatch: %d (%d %%)" % (multi_tag1, mismatch1, (mismatch1 * 100) / multi_tag1)
 	print "R2: Multi-tag: %d, Tag mismatch: %d (%d %%)" % (multi_tag2, mismatch2, (mismatch2 * 100) / multi_tag2)
 
 	print "Global mismatches: %d, Total mismatches: %d (%d %%)" % (global_mismatch, total_mismatch, (total_mismatch * 100) / i)
+	print "Perfect spacers found: %d (%d %%)" % (n_perfect_spacer, n_perfect_spacer * 100 / i)
 
 	for fh in out_files.values():
 		fh.close()
@@ -142,18 +153,10 @@ seqh1 = SeqIO.parse(fh1, 'fastq', generic_dna)
 fh2 = open_maybe_gzip(sys.argv[2])
 seqh2 = SeqIO.parse(fh2, "fastq", generic_dna)
 
-#fh3 = open(sys.argv[3], "a+")
-#fh3.truncate()
 
 main(seqh1, seqh2, sys.argv[3])
 
-#fh3.close()
 fh2.close()
 fh1.close()
 
-
-#cProfile.run('main(seqh1, seqh2)', 'bzz')
-#p = pstats.Stats('bzz')
-#p.sort_stats('cumtime')
-#p.print_stats()
 

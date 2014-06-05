@@ -65,10 +65,12 @@ def hamming_distance(s1, s2):
 	return sum(ch1 != ch2 for ch1, ch2 in zip(s1, s2))
 
 
-def seq_mismatches(subseq, seq, pos):
+def seq_mismatches(subseq, seq, pos = 0):
 	return hamming_distance(str(subseq), str(seq[pos:pos + len(subseq)]))
 
 def annotate_primers(seq, primers):
+
+	primer_list = []
 
 	for primer in primers:
 		# Look for the primer on plus strand.
@@ -89,8 +91,8 @@ def annotate_primers(seq, primers):
 			if pos + len(primer.seq) - 1 < len(seq) and seq_mismatches(primer.seq, seq.seq, pos) < 3:
 				seq.features.append(SeqFeature(
 					FeatureLocation(pos, pos + len(primer.seq)),
-					type = "Primer", ref = primer.id, strand = +1)
-							)
+					type = "Primer", ref = primer.id, strand = +1))
+				primer_list.append((primer.id, str(seq.seq[pos:pos + len(primer.seq)])))
 
 		# Look for the primer on the minus strand.
 		positions = []
@@ -106,8 +108,8 @@ def annotate_primers(seq, primers):
 			if pos + len(primer.seq) - 1 < len(seq) and seq_mismatches(primer.reverse_complement, seq.seq, pos) < 3:
 				seq.features.append(SeqFeature(
 					FeatureLocation(pos, pos + len(primer.seq)),
-					type = "Primer", ref = primer.id, strand = -1)
-							)
+					type = "Primer", ref = primer.id, strand = -1))
+				primer_list.append((primer.id, str(seq.seq[pos:pos + len(primer.seq)])))
 
 def annotate_tag(seq, tags, start, end, strand):
 	if strand == 1:
@@ -261,4 +263,29 @@ def align(spacer, refseq):
 #	print score, pos_query, position
 
 	return score, pos_query, position
+
+def ambiguous_merge(seq1, seq2):
+	if not len(seq1) == len(seq2):
+		raise ValueError('Sequences should have same length')
 	
+	s_array = list(str(seq1.seq))
+	q_array = seq1.letter_annotations['phred_quality']
+
+	n = 0
+	while n < len(seq1):
+		if (seq1.seq[n] == seq2.seq[n]):
+			# letters match - just pick the highest score here.
+			q_array = max(seq1.letter_annotations["phred_quality"],
+				    seq2.letter_annotations["phred_quality"])
+		else:
+			# No match - 'N' and average score.
+			s_array[n] = "N"
+			q_array[n] = seq1.letter_annotations["phred_quality"][n] + seq2.letter_annotations["phred_quality"][n] / float(2)
+		n += 1
+
+	seq_str = "".join(s_array)
+
+	seq = SeqRecord(seq_str, id = seq1.id + seq2.id, name = seq1.name, description=seq1.description,
+				letter_annotations = {'phred_quality' : q_array})
+
+	return seq
