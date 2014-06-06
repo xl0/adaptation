@@ -34,13 +34,12 @@ class DoubleSeqIterable:
 	def next(self):
 		tmp = (self.seqh1.next(), self.seqh2.next(), self.tags, self.primers, self.repeat, self.n)
 		self.n += 1
+		if self.n > 100000:
+			raise StopIteration
 		return tmp
 
 	def __iter__(self):
 		return self
-
-def callback(arg):
-	print "Callback", arg
 
 
 def worker_function(arg):
@@ -63,37 +62,20 @@ def worker_function(arg):
 
 	found_tags1 = annotate_tags(seq1, tags)
 	found_tags2 = annotate_tags(seq2, tags)
-#	if len(found_tags1) > 1:
-#		multi_tag1 += 1
 
 	annotate_repeats(seq1, repeat)
 	annotate_repeats(seq2, repeat)
 	annotate_spacers(seq1)
 	annotate_spacers(seq2)
 
-#		print "==="
-#		show_sequence(seq1)
-#		print "---"
-#		show_sequence(seq2)
 
 	# Unique tags
 	utags1 = list(set(found_tags1))
-#	if len(utags1) > 1:
-#		mismatch1 += 1
-
-#	if len(found_tags2) > 1:
-#		multi_tag2 += 1
 
 	utags2 = list(set(found_tags2))
-#	if len(utags2) > 1:
-#		mismatch2 += 1
-
-#	if len(utags1) == 1 and len(utags2) == 1 and not utags1[0] == utags2[0]:
-#		global_mismatch += 1
 
 	# If we get an abnormal number of tags, or the tags do not match, skip this pair.
 	if not len(utags1) == 1 or not len(utags2) == 1 or not utags1[0] == utags2[0]:
-#		total_mismatch += 1
 		return None
 
 
@@ -112,10 +94,6 @@ def worker_function(arg):
 				spacer = ambiguous_merge(spacers[0], spacers[1])
 				return (spacer, utags1[0])
 
-#				SeqIO.write(spacer, out_files[utags1[0].seq], "fastq")
-#				n_perfect_spacer += 1
-
-#	print "Worker", arg
 	return None
 
 
@@ -146,21 +124,9 @@ def main(seqh1, seqh2, out_file_base):
 	out_file_none = open(out_file_base + "_none.fastq", "a+")
 	out_file_none.truncate()
 
-	# XXX Add stats
-	stats = {}
-	stats["tags"] = tags
-	stats["primers"] = primers
 
 	s = i = 0
 	nseq_primer = 0
-
-	multi_tag1 = 0
-	mismatch1 = 0
-	multi_tag2 = 0
-	mismatch2 = 0
-
-	global_mismatch = 0
-	total_mismatch = 0
 
 	n_perfect_spacer = 0
 
@@ -204,7 +170,11 @@ fh2 = open_maybe_gzip(sys.argv[2])
 seqh2 = SeqIO.parse(fh2, "fastq", generic_dna)
 
 
-main(seqh1, seqh2, sys.argv[3])
+#main(seqh1, seqh2, sys.argv[3])
+cProfile.run('main(seqh1, seqh2, sys.argv[3])', 'bzz')
+p = pstats.Stats('bzz')
+p.sort_stats('cumtime')
+p.print_stats()
 
 fh2.close()
 fh1.close()
