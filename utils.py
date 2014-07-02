@@ -2,6 +2,7 @@
 import re
 import gzip
 import subprocess
+import os
 
 from StringIO import StringIO
 from Bio import AlignIO
@@ -11,6 +12,8 @@ from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation
 
 from Bio.Emboss.Applications import WaterCommandline
+
+devnull = open(os.devnull, "w")
 
 def open_maybe_gzip(filename):
 	fh = gzip.open(filename)
@@ -144,7 +147,7 @@ def annotate_tags(seq, tags):
 			if new_tag:
 				found_tags.append(new_tag)
 	return found_tags
-       			
+
 def annotate_repeats(seq, repeat):
 	primer_end = -1
 	for feature in seq.features:
@@ -152,7 +155,7 @@ def annotate_repeats(seq, repeat):
 			primer_end = feature.location.end;
 
 	if primer_end == -1:
-		return	
+		return
 
 
 	# Repeats are polyndromic on the ends - no need to chech RC.
@@ -188,7 +191,7 @@ def annotate_spacers(seq):
 			FeatureLocation(repeats[0].location.end, repeats[1].location.start),
 			type = "Spacer", id = " ", strand = repeats[0].strand));
 		repeats = repeats[1:]
-	
+
 
 def extract_spacers(seq, tag):
 
@@ -210,15 +213,17 @@ def extract_spacers(seq, tag):
 			if primer[0] == "R":
 				spacer_seq = spacer_seq.reverse_complement()
 				spacer_q.reverse()
-	
+
 			spacers.append(SeqRecord(spacer_seq, id = seq.id, name = tag, description=tag, letter_annotations = {'phred_quality' : spacer_q}))
 	return spacers
 
 
-def parse_water(stdout):
+def parse_water(filename):
 
 #	print stdout
-	lines = stdout.splitlines()
+	fh = open(filename)
+	lines = fh.readlines()
+	fh.close()
 
 	i = 0
 	m = re.search('[1-9]+',lines[27])
@@ -239,31 +244,48 @@ def align(spacer, refseq):
 
 #	print len(spacer), str(spacer.seq)
 
+	outfile = "tmp/water-" + str(os.getpid()) + ".out"
+
 	args = [
 			"water",
-			"stdin",
-			"asis:" + str(spacer),
+			str("-aseq=" + refseq),
+			"asis:" + spacer,
 			"-gapopen=10",
 			"-gapextend=10",
 			"-datafile=water_score_matrix.txt",
-			"stdout"
+			outfile
 	]
 
-	child = subprocess.Popen(args, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-	stdout, stderr = child.communicate(str(refseq))
-#	print stdout
-	if not child.returncode == 0:
-		raise subprocess.CalledProcessError
+#	print " ".join(args)
 
-	score, pos_query, position = parse_water(stdout)
+	subprocess.call(args, stderr = devnull)
+
+#	child = subprocess.Popen(args, stdin = None, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+#	stdout, stderr = child.communicate(str(refseq))
+#	stdout, stderr = child.communicate(None)
+
+	
+
+#	print stdout
+#	if not child.returncode == 0:
+#		print " ".join(args)
+#		print "stderr"
+#		print stderr
+#		raise subprocess.CalledProcessError
+
+#	score = 0
+#	pos_query = None
+#	position = None
+	score, pos_query, position = parse_water(outfile)
 #	print score, pos_query, position
 
 	return score, pos_query, position
 
+
 def ambiguous_merge(seq1, seq2):
 	if not len(seq1) == len(seq2):
 		raise ValueError('Sequences should have same length')
-	
+
 	s_array = list(str(seq1.seq))
 	q_array = seq1.letter_annotations['phred_quality']
 

@@ -21,7 +21,6 @@ def usage():
 	print "Usage:"
 	print "\t" + sys.argv[0] + " <read1.fastq[.gz]> <read2.fastq[.gz]> <out_file_base>"
 
-
 class DoubleSeqIterable:
 	def __init__(self, seqh1, seqh2, tags, primers, repeat):
 		self.seqh1 = seqh1
@@ -34,13 +33,15 @@ class DoubleSeqIterable:
 	def next(self):
 		tmp = (self.seqh1.next(), self.seqh2.next(), self.tags, self.primers, self.repeat, self.n)
 		self.n += 1
-		if self.n > 100000:
+
+		if not self.n % 10000:
+			print self.n
+		if self.n > 1000000:
 			raise StopIteration
 		return tmp
 
 	def __iter__(self):
 		return self
-
 
 def worker_function(arg):
 	seq1 = arg[0]
@@ -49,9 +50,6 @@ def worker_function(arg):
 	primers = arg[3]
 	repeat = arg[4]
 	i = arg[5]
-
-	if not i % 1000:
-		print i
 
 
 	seq1.name = seq1.id = "R1_" + str(i)
@@ -68,7 +66,6 @@ def worker_function(arg):
 	annotate_spacers(seq1)
 	annotate_spacers(seq2)
 
-
 	# Unique tags
 	utags1 = list(set(found_tags1))
 
@@ -77,7 +74,6 @@ def worker_function(arg):
 	# If we get an abnormal number of tags, or the tags do not match, skip this pair.
 	if not len(utags1) == 1 or not len(utags2) == 1 or not utags1[0] == utags2[0]:
 		return None
-
 
 	spacers = extract_spacers(seq1, utags1[0]) + extract_spacers(seq2, utags2[0])
 
@@ -116,12 +112,12 @@ def main(seqh1, seqh2, out_file_base):
 
 	out_files = {}
 	for tag in tags:
-		out_files[tag.seq] = open(out_file_base + "_" + tag.seq + ".fastq", "a+")
+		out_files[tag.seq] = open(out_file_base + "_" + tag.seq + ".fastq", "wr+")
 		out_files[tag.seq].truncate()
-	out_file_all = open(out_file_base + ".fastq", "a+")
+	out_file_all = open(out_file_base + ".fastq", "wr+")
 	out_file_all.truncate()
 
-	out_file_none = open(out_file_base + "_none.fastq", "a+")
+	out_file_none = open(out_file_base + "_none.fastq", "wr+")
 	out_file_none.truncate()
 
 
@@ -133,11 +129,13 @@ def main(seqh1, seqh2, out_file_base):
 
 	iterable = DoubleSeqIterable(seqh1, seqh2, tags, primers, repeat)
 
-	pool = Pool()
+	pool = Pool(6)
 
 	print "Hello!"
 
-	for res in pool.imap(worker_function, iterable, 1000):
+
+
+	for res in pool.imap_unordered(worker_function, iterable, 100):
 		if res:
 			spacer = res[0]
 			tag = res[1]
@@ -147,6 +145,7 @@ def main(seqh1, seqh2, out_file_base):
 
 	print "Bye!"
 
+	print "i = ", iterable.n
 
 #	print "R1: Multi-tag: %d, Tag mismatch: %d (%d %%)" % (multi_tag1, mismatch1, (mismatch1 * 100) / multi_tag1)
 #	print "R2: Multi-tag: %d, Tag mismatch: %d (%d %%)" % (multi_tag2, mismatch2, (mismatch2 * 100) / multi_tag2)
@@ -170,11 +169,11 @@ fh2 = open_maybe_gzip(sys.argv[2])
 seqh2 = SeqIO.parse(fh2, "fastq", generic_dna)
 
 
-#main(seqh1, seqh2, sys.argv[3])
-cProfile.run('main(seqh1, seqh2, sys.argv[3])', 'bzz')
-p = pstats.Stats('bzz')
-p.sort_stats('cumtime')
-p.print_stats()
+main(seqh1, seqh2, sys.argv[3])
+#cProfile.run('main(seqh1, seqh2, sys.argv[3])', 'bzz')
+#p = pstats.Stats('bzz')
+#p.sort_stats('cumtime')
+#p.print_stats()
 
 fh2.close()
 fh1.close()

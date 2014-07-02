@@ -15,24 +15,24 @@ import pstats
 
 
 def usage():
-	print "Usage:"
-	print "\t" + sys.argv[0] + " <read1.fastq[.gz]> <read2.fastq[.gz]> <out_file_base>"
+	print ("Usage:")
+	print ("\t" + sys.argv[0] + " <read1.fastq[.gz]> <read2.fastq[.gz]> <out_file_base>")
 
 def main(seqh1, seqh2, out_file_base):
 	primers = get_primers()
 	tags = get_tags()
 	repeat = get_repeat()
 
-	print "Primers:"
+	print ("Primers:")
 	for primer in primers:
 		print primer.id, "\t", str(primer.seq)
 
-	print "Tags:"
+	print ("Tags:")
 	for tag in tags:
-		print str(tag.seq)
+		print (str(tag.seq))
 
-	print "Repeat:"
-	print str(repeat.seq)
+	print ("Repeat:")
+	print (str(repeat.seq))
 
 
 	out_files = {}
@@ -66,10 +66,10 @@ def main(seqh1, seqh2, out_file_base):
 	for seq1 in seqh1:
 		i = i + 1
 		if i % 1000 == 0:
-			print i
+			print (i)
 
-#		if i > 10000:
-#			break
+		if i > 100000:
+			break
 
 		seq2 = seqh2.next()
 		seq1.name = seq1.id = "R1_" + str(i)
@@ -117,7 +117,7 @@ def main(seqh1, seqh2, out_file_base):
 		spacers = extract_spacers(seq1, utags1[0]) + extract_spacers(seq2, utags2[0])
 
 		if len(spacers) > 2:
-			print "WTF? %d spacers?" % len(spacers)
+			print ("WTF? %d spacers?" % len(spacers))
 			show_sequence(seq1)
 			show_sequence(seq2)
 
@@ -132,11 +132,11 @@ def main(seqh1, seqh2, out_file_base):
 
 
 
-	print "R1: Multi-tag: %d, Tag mismatch: %d (%d %%)" % (multi_tag1, mismatch1, (mismatch1 * 100) / multi_tag1)
-	print "R2: Multi-tag: %d, Tag mismatch: %d (%d %%)" % (multi_tag2, mismatch2, (mismatch2 * 100) / multi_tag2)
+	print ("R1: Multi-tag: %d, Tag mismatch: %d (%d %%)" % (multi_tag1, mismatch1, (mismatch1 * 100) / multi_tag1))
+	print ("R2: Multi-tag: %d, Tag mismatch: %d (%d %%)" % (multi_tag2, mismatch2, (mismatch2 * 100) / multi_tag2))
 
-	print "Global mismatches: %d, Total mismatches: %d (%d %%)" % (global_mismatch, total_mismatch, (total_mismatch * 100) / i)
-	print "Perfect spacers found: %d (%d %%)" % (n_perfect_spacer, n_perfect_spacer * 100 / i)
+	print ("Global mismatches: %d, Total mismatches: %d (%d %%)" % (global_mismatch, total_mismatch, (total_mismatch * 100) / i))
+	print ("Perfect spacers found: %d (%d %%)" % (n_perfect_spacer, n_perfect_spacer * 100 / i))
 
 	for fh in out_files.values():
 		fh.close()

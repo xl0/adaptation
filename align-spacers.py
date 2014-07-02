@@ -26,6 +26,7 @@ def main(seqh, dbs):
 	for db_fd in dbs:
 		print "Parsing ", db_fd.name
 		db_seqh = SeqIO.parse(db_fd, "genbank")
+		print db_seqh
 		db_seq = db_seqh.next()
 		db_seqh.close()
 
@@ -59,6 +60,9 @@ def main(seqh, dbs):
 		nseq += 1
 		if not nseq % 100:
 			print nseq
+
+		if nseq > 10000:
+			break
 
 		found = 0
 		for db in fast_db.values():
@@ -157,8 +161,7 @@ def main(seqh, dbs):
 		db_name = db_fd.name
 		db_fd.close()
 
-		db_fd = open(db_name, "a+")
-		db_fd.truncate()
+		db_fd = open(db_name, "wr+")
 		SeqIO.write(db_seq, db_fd, "genbank")
 
 
@@ -174,8 +177,8 @@ dbs = []
 print sys.argv
 for db in sys.argv[2:]:
 	print db
-	fh = open(db, "a+")
-	dbs.append(fh) #db_seqh.next())
+	fh = open(db, "rw")
+	dbs.append(fh)
 
 main(seqh,dbs)
 #cProfile.run('main(seqh, dbs)', 'bzz')

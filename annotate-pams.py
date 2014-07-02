@@ -54,9 +54,11 @@ if (len(sys.argv) != 3):
 fh1 = open_maybe_gzip(sys.argv[1])
 seqh = SeqIO.parse(fh1, 'genbank', generic_dna)
 
-fh2 = open(sys.argv[2], "a+")
+fh2 = open(sys.argv[2], "wr+")
 fh2.truncate()
 
+
+print "Annotating ", fh1.name, " to ", fh2.name
 main(seqh, fh2)
 
 fh2.close()
