@@ -72,7 +72,6 @@ def seq_mismatches(subseq, seq, pos = 0):
 	return hamming_distance(str(subseq), str(seq[pos:pos + len(subseq)]))
 
 def annotate_primers(seq, primers):
-
 	for primer in primers:
 		# Look for the primer on plus strand.
 		positions = []
@@ -192,6 +191,9 @@ def annotate_spacers(seq):
 			type = "Spacer", id = " ", strand = repeats[0].strand));
 		repeats = repeats[1:]
 
+def sum_stats(stats, new):
+	for ket in new.keys():
+		stats[key] += new[key]
 
 def extract_spacers(seq, tag):
 
@@ -218,12 +220,14 @@ def extract_spacers(seq, tag):
 	return spacers
 
 
-def parse_water(filename):
+def parse_water(stdout):
 
 #	print stdout
-	fh = open(filename)
-	lines = fh.readlines()
-	fh.close()
+#	fh = open(filename)
+#	lines = fh.readlines()
+#	fh.close()
+
+	lines = stdout.splitlines()
 
 	i = 0
 	m = re.search('[1-9]+',lines[27])
@@ -253,30 +257,30 @@ def align(spacer, refseq):
 			"-gapopen=10",
 			"-gapextend=10",
 			"-datafile=water_score_matrix.txt",
-			outfile
+			"stdout"
 	]
 
 #	print " ".join(args)
 
-	subprocess.call(args, stderr = devnull)
+#	subprocess.call(args, stderr = devnull)
 
-#	child = subprocess.Popen(args, stdin = None, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+	child = subprocess.Popen(args, stdin = None, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 #	stdout, stderr = child.communicate(str(refseq))
-#	stdout, stderr = child.communicate(None)
+	stdout, stderr = child.communicate(None)
 
 	
 
 #	print stdout
-#	if not child.returncode == 0:
-#		print " ".join(args)
-#		print "stderr"
-#		print stderr
-#		raise subprocess.CalledProcessError
+	if not child.returncode == 0:
+		print " ".join(args)
+		print "stderr"
+		print stderr
+		raise subprocess.CalledProcessError
 
 #	score = 0
 #	pos_query = None
 #	position = None
-	score, pos_query, position = parse_water(outfile)
+	score, pos_query, position = parse_water(stdout)
 #	print score, pos_query, position
 
 	return score, pos_query, position

@@ -44,7 +44,7 @@ def main(seqh, out):
 	for position in positions:
 		seq.features.append(SeqFeature(FeatureLocation(position[0], position[0] + 3),
 					type = "PAM", strand = position[1]))
-		
+
 	SeqIO.write(seq, out, "genbank")
 
 if (len(sys.argv) != 3):

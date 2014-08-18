@@ -34,38 +34,52 @@ found_spacer_dict = defaultdict(list)
 #	value: number of hits
 spacer_db = {}
 
-
 class DoubleSeqIterable:
 	def __init__(self, seqh):
 		self.seqh = seqh
 		self.n = 0
+		self.hits = 0
+		self.misses = 0
+		self.last_hits = 0
+		self.last_misses = 0
 
 	def next(self):
-		# Check if the primer was already found.		
+		# Check if the primer was already found.
 
 		while True:
 			seq = self.seqh.next()
 			str_seq = str(seq.seq)
 			self.n += 1
-			if not self.n % 100000:
-				print self.n
+			if not self.n % 10000:
+				print self.n, self.hits, self.misses, self.last_hits, self.last_misses
+				self.last_hits = 0
+				self.last_misses = 0
 
 #			if self.n > 100000:
 #				raise StopIteration
 
 			if found_spacer_dict.has_key(str_seq):
+				self.hits += 1
+				self.last_hits += 1
 				spacer_dict_key_list = found_spacer_dict[str_seq]
 				if spacer_dict_key_list[0]:
 					for spacer_dict_key in spacer_dict_key_list[1]:
 						spacer_db[spacer_dict_key[0]][spacer_dict_key[1]] += 1
 
 			else:
+				self.misses += 1
+				self.last_misses += 1
 				break
 
 		return (str_seq, self.n - 1)
 
 	def __iter__(self):
 		return self
+	def get_hits(self):
+		return self.hits
+	def get_misses(self):
+		return self.misses
+
 
 global shared_template_db
 def real_worker_function(arg):
@@ -172,14 +186,20 @@ def gen_tmp_sequence(db_seq, db_fd):
 	fh.write("\n")
 	fh.close()
 
-def main(seqh, dbs):
+	return name
 
+def main(seq_name, dbs):
+
+	seqfh = open_maybe_gzip(seq_name)
+	seqh = SeqIO.parse(seqfh, 'fastq', generic_dna)
 
 	# template_db
 	# key: template file name
 	# value: (db_seq, db_fd)
 	template_db = OrderedDict()
 
+	# List of temporary files, fed to water, and to be removed later.
+	template_tmp_seq_list = []
 
 	match = 0
 	mismatch = 0
@@ -204,10 +224,11 @@ def main(seqh, dbs):
 		template_db[db_fd.name] = (db_seq, db_fd)
 		spacer_db[db_fd.name] = defaultdict(int)
 
-		gen_tmp_sequence(db_seq, db_fd)
+		name = gen_tmp_sequence(db_seq, db_fd)
+		template_tmp_seq_list.append(name)
 
 
-	print "Aligning spacer sequences..."
+	print "Aligning spacer sequences from %s to %s." % (seqfh.name, ' '.join([x for x in template_db.keys()]))
 
 	iterable = DoubleSeqIterable(seqh)
 
@@ -218,6 +239,7 @@ def main(seqh, dbs):
 
 	pool = Pool(initializer=share_template_db, initargs=(template_db,))
 
+	n = 0
 	for res in pool.imap(worker_function, iterable, 10):
 		found = res[0]
 		spacer_seq = res[1]
@@ -240,6 +262,10 @@ def main(seqh, dbs):
 			found_spacer_dict[spacer_seq] = (True, update_list)
 		else:
 			found_spacer_dict[spacer_seq] = (False, None)
+
+	print "Spacers analyzed: ", n
+	print "Cache hits: ", iterable.get_hits()
+	print "Cache misses: ", iterable.get_misses()
 
 	print "Updating the database files..."
 
@@ -267,23 +293,25 @@ def main(seqh, dbs):
 		SeqIO.write(db_seq, db_fd, "genbank")
 		db_fd.close()
 
+	for tmp in temlate_tmp_seq_list:
+		os.unlink(tmp)
+
+
 
 if (len(sys.argv) < 3):
 	usage()
 	exit(0)
 
-seqfh = open_maybe_gzip(sys.argv[1])
-seqh = SeqIO.parse(seqfh, 'fastq', generic_dna)
 
 dbs = []
 
 #print sys.argv
 for db in sys.argv[2:]:
-	print db
+#	print db
 	fh = open(db, "rw")
 	dbs.append(fh) #db_seqh.next())
 
-main(seqh,dbs)
+main(sys.argv[1],dbs)
 #cProfile.run('main(seqh, dbs)', 'bzz')
 #p = pstats.Stats('bzz')
 #p.sort_stats('cumtime')
