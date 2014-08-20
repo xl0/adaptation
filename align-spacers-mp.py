@@ -90,6 +90,9 @@ def real_worker_function(arg):
 	match = 0
 	mismatch = 0
 
+	# Ignore spacers that are obviously too short
+	if len(seq) < 15:
+		return (False, seq, None, None)
 
 	# Align spacers to the DB sequence, counting the number of occurance
 
@@ -188,9 +191,18 @@ def gen_tmp_sequence(db_seq, db_fd):
 
 	return name
 
-def main(seq_name, dbs):
+def main(argv):
 
-	seqfh = open_maybe_gzip(seq_name)
+	if (len(argv) < 3):
+		usage()
+		exit(1)
+
+	dbs = []
+	for db in argv[2:]:
+		fh = open(db, "rw")
+		dbs.append(fh)
+
+	seqfh = open_maybe_gzip(argv[1])
 	seqh = SeqIO.parse(seqfh, 'fastq', generic_dna)
 
 	# template_db
@@ -226,7 +238,6 @@ def main(seq_name, dbs):
 
 		name = gen_tmp_sequence(db_seq, db_fd)
 		template_tmp_seq_list.append(name)
-
 
 	print "Aligning spacer sequences from %s to %s." % (seqfh.name, ' '.join([x for x in template_db.keys()]))
 
@@ -293,25 +304,13 @@ def main(seq_name, dbs):
 		SeqIO.write(db_seq, db_fd, "genbank")
 		db_fd.close()
 
-	for tmp in temlate_tmp_seq_list:
+	for tmp in template_tmp_seq_list:
 		os.unlink(tmp)
 
+if __name__ == "__main__":
+    main(sys.argv)
 
 
-if (len(sys.argv) < 3):
-	usage()
-	exit(0)
-
-
-dbs = []
-
-#print sys.argv
-for db in sys.argv[2:]:
-#	print db
-	fh = open(db, "rw")
-	dbs.append(fh) #db_seqh.next())
-
-main(sys.argv[1],dbs)
 #cProfile.run('main(seqh, dbs)', 'bzz')
 #p = pstats.Stats('bzz')
 #p.sort_stats('cumtime')

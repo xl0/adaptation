@@ -30,6 +30,22 @@ def open_maybe_gzip(filename):
 
 	return fh
 
+# Filename is '/dir/dir/experiment/4template-PAMS-TAG.gb'. Split into '/dir/dir/dir/', 'experiment', 'template', 'TAG'.
+def split_filename(filename):
+	(d, f) = os.path.split(filename)
+
+	experiment = os.path.basename(d)
+
+	name = f.split('.')[0]
+
+	name_parts = name.split('-')
+	template = name_parts[0]
+	# Cut out the number used to order templates.
+	template = template[1:]
+	tag = name_parts[2]
+
+	return (d, experiment, template, tag)
+
 def sort_features(seq):
 	seq.features = sorted(seq.features, key = lambda feature: int(feature.location.start))
 
@@ -130,7 +146,7 @@ def annotate_tag(seq, tags, start, end, strand):
 			seq.features.append(SeqFeature(
 				FeatureLocation(start, end), type="Tag",
 				ref=tag.id, strand = strand))
-			return tag
+			return tag.id
 	return None
 
 def annotate_tags(seq, tags):

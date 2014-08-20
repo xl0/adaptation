@@ -3,8 +3,7 @@
 import sys
 from Bio import SeqIO
 from Bio.Seq import Seq
-import numpy as np
-import matplotlib.pyplot as plt
+from utils import *
 
 
 def usage():
@@ -19,10 +18,10 @@ if (len(sys.argv) != 4) :
 number = float(sys.argv[3])
 
 
-ifh = open(sys.argv[1], "r");
+ifh = open_maybe_gzip(sys.argv[1]);
 iseqh = SeqIO.parse(ifh, 'fastq');
 
-ofh = open(sys.argv[2], "a+");
+ofh = open(sys.argv[2], "wr+");
 
 i = 0;
 for seq in iseqh:

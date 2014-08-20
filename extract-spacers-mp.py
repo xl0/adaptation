@@ -5,13 +5,14 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import generic_dna
-
+from collections import defaultdict
 
 from utils import *
 from sequences import *
 
 from multiprocessing import Pool
 
+import json
 
 import cProfile
 import pstats
@@ -23,16 +24,13 @@ def usage():
 	print "Usage:\t" + sys.argv[0] + " <read1.fastq[.gz]> <read2.fastq[.gz]> <out_file_base>"
 
 class DoubleSeqIterable:
-	def __init__(self, seqh1, seqh2, tags, primers, repeat):
+	def __init__(self, seqh1, seqh2):
 		self.seqh1 = seqh1
 		self.seqh2 = seqh2
-		self.tags = tags
-		self.primers = primers
-		self.repeat = repeat
 		self.n = 0
 
 	def next(self):
-		tmp = (self.seqh1.next(), self.seqh2.next(), self.tags, self.primers, self.repeat, self.n)
+		tmp = (self.seqh1.next(), self.seqh2.next(), self.n)
 		self.n += 1
 
 		return tmp
@@ -40,13 +38,17 @@ class DoubleSeqIterable:
 	def __iter__(self):
 		return self
 
+global g_tags
+global g_repeat
+global g_primers
+
 def worker_function(arg):
 	seq1 = arg[0]
 	seq2 = arg[1]
-	tags = arg[2]
-	primers = arg[3]
-	repeat = arg[4]
-	i = arg[5]
+	i = arg[2]
+	tags = g_tags
+	primers = g_primers
+	repeat = g_repeat
 
 
 	seq1.name = seq1.id = "R1_" + str(i)
@@ -58,24 +60,24 @@ def worker_function(arg):
 	found_tags1 = annotate_tags(seq1, tags)
 	found_tags2 = annotate_tags(seq2, tags)
 
-	annotate_repeats(seq1, repeat)
-	annotate_repeats(seq2, repeat)
-	annotate_spacers(seq1)
-	annotate_spacers(seq2)
-
 	# Unique tags
 	utags1 = list(set(found_tags1))
-
 	utags2 = list(set(found_tags2))
 
 	# If we get an abnormal number of tags, or the tags do not match, skip this pair.
 	if not len(utags1) == 1 or not len(utags2) == 1 or not utags1[0] == utags2[0]:
 		return None
 
+	annotate_repeats(seq1, repeat)
+	annotate_repeats(seq2, repeat)
+	annotate_spacers(seq1)
+	annotate_spacers(seq2)
+
+
 	spacers = extract_spacers(seq1, utags1[0]) + extract_spacers(seq2, utags2[0])
 
 	if len(spacers) > 2:
-		print "WTF? %d spacers?" % len(spacers)
+		print "\nWTF? %d spacers?" % len(spacers)
 		show_sequence(seq1)
 		show_sequence(seq2)
 
@@ -85,10 +87,10 @@ def worker_function(arg):
 			# Let's allow up to 3 mismatches, and no insertions/deletions.
 			if(seq_mismatches(spacers[0], spacers[1]) <= 3):
 				spacer = ambiguous_merge(spacers[0], spacers[1])
-				return (spacer,  utags1[0])
+				return (utags1[0], spacer)
 
-	return None
-
+	# Good tag, but no spacer - still return tag for statistics
+	return (utags1[0], None)
 
 def main():
 	if (len(sys.argv) != 4):
@@ -104,8 +106,9 @@ def main():
 	tags = get_tags()
 	out_files = {}
 	for tag in tags:
-		out_files[tag.seq] = open(sys.argv[3] + tag.seq + ".fastq", "wr+")
+		out_files[tag.id] = open(sys.argv[3] + tag.id + ".fastq", "wr+")
 
+	out_files['stats'] = open(sys.argv[3] + 'stats.json', 'wr+')
 	primers = get_primers()
 	repeat = get_repeat()
 
@@ -124,41 +127,97 @@ def main():
 
 
 
-	iterable = DoubleSeqIterable(seqh1, seqh2, tags, primers, repeat)
 
-	pool = Pool(num_threads)
+	global g_tags
+	global g_repeat
+	global g_primers
+	def share_global_data(tags, primers, repeat):
+		global g_tags
+		global g_repeat
+		global g_primers
+		g_tags = tags
+		g_primers = primers
+		g_repeat = repeat
+
+	iterable = DoubleSeqIterable(seqh1, seqh2)
+	pool = Pool(initializer=share_global_data, initargs=(tags, primers, repeat,))
+
+	stats = {	'num_sequences' : 0,
+			'num_sequences_w_tag' : 0,
+			'num_spacers' : 0,
+			'spacer_lengths' : defaultdict(int),
+		}
+	for tag in tags:
+		stats['num_sequences_' + tag.id] = 0
+		stats['num_spacers_' + tag.id] = 0
+		stats['spacer_lengths_' + tag.id] = defaultdict(int)
+
+	stats['spacer_lengths'] = defaultdict(int)
+
 
 	print "Starting pool workers in %d threads" % num_threads
-
-	num_spacers = 0
-	num_processed = 0
-	for res in pool.imap_unordered(worker_function, iterable, 100):
-		if num_processed == 0:
-			sys.stdout.write('Processing spacers... ')
-			sys.stdout.flush()
-		if not num_processed % 1000000:
-			sys.stdout.write("%d ..." % num_processed)
-			sys.stdout.flush()
-
-		num_processed += 1
+	sys.stdout.write('Processing spacers... ')
+	for res in pool.imap_unordered(worker_function, iterable, 1):
+		if not stats['num_sequences'] % 1000000:
+			sys.stdout.write("%d ..." % stats['num_sequences'])
+	
+		stats['num_sequences'] += 1
 		if res:
-			spacer = res[0]
-			tag = res[1]
-			SeqIO.write(spacer, out_files[tag.seq], "fastq")
-			num_spacers += 1
-	sys.stdout.write('%d\n' %  num_processed)
+			tag = res[0]
+			stats['num_sequences_w_tag'] += 1
+			stats['num_sequences_' + tag] += 1
+			spacer = res[1]
+			if spacer:
+				length = len(spacer.seq)
+				SeqIO.write(spacer, out_files[tag], "fastq")
+				stats['num_spacers'] += 1
+				stats['num_spacers_' + tag] += 1
+				stats['spacer_lengths'][length] += 1
+				stats['spacer_lengths_' + tag][length] += 1
+	print stats['num_sequences']
 
-	print "Extracted %d spacers from %d sequences" % (num_spacers, iterable.n)
+	# Ignore sequences with tags that represent less than 1% of the tagged sequences.
+	threshold = float(stats['num_sequences_w_tag']) / 100
+
+	print 'Analyzed %d sequences, %d had valid tags (%.2f %%).' % (
+		stats['num_sequences'],
+		stats['num_sequences_w_tag'],
+		float(stats['num_sequences_w_tag']) / stats['num_sequences'] * 100)
+	print 'Breackdown by tag:'
+	for tag in tags:
+		num_seq = stats['num_sequences_' + tag.id]
+		if num_seq > 0:
+			if num_seq > threshold:
+				print "%s: %d (%.2f %%)" % (tag.id, num_seq, float(num_seq) / stats['num_sequences_w_tag'] * 100)
+			else:
+				print "%s: %d (%.2f %%) (ignored)" % (tag.id, num_seq, float(num_seq) / stats['num_sequences_w_tag'] * 100)
+
+	print 'Extracted %d spacers from %d tagged sequences (%.2f %%, %.2f %% of all sequences)' % (
+		stats['num_spacers'],
+		stats['num_sequences_w_tag'],
+		float(stats['num_spacers']) / stats['num_sequences_w_tag'] * 100,
+		float(stats['num_spacers']) / stats['num_sequences'] * 100)
+	print 'Breackdown by tag:'
+	for tag in tags:
+		num_seq = stats['num_sequences_' + tag.id]
+		if num_seq > threshold:
+			print "%s: %d (%.2f %% of spacers, %.2f %% sequences with this tag had good spacers)" % (
+				tag.id,
+				stats['num_spacers_' + tag.id],
+				float(stats['num_spacers_' + tag.id]) / stats['num_spacers'] * 100,
+				float(stats['num_spacers_' + tag.id]) / stats['num_sequences_' + tag.id] * 100)
+
+	json.dump(stats, out_files['stats'], sort_keys=True, indent=4)
+
 	fh1.close()
 	fh2.close()
-	for fh in out_files.values():
-		pos = fh.tell()
-		# Nothing in this file - remove it.
-		if pos == 0:
-			os.unlink(fh.name)
-			
-		fh.close()
-
+	for tag in tags:
+		num_seq = stats['num_sequences_' + tag.id]
+		if num_seq < threshold:
+			os.unlink(out_files[tag.id].name)
+		out_files[tag.id].close()
+	
+	out_files['stats'].close()	
 
 if __name__ == "__main__":
     main()
