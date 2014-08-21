@@ -104,56 +104,6 @@ def main():
 		stats['hit_spacers_bad_pam'], float(stats['hit_spacers_bad_pam']) / stats['hit_spacers'] * 100,
 		stats['hit_spacers_bad_pam_pos'], float(stats['hit_spacers_bad_pam_pos']) / stats['hit_spacers_pos'] * 100,
 		stats['hit_spacers_bad_pam_neg'], float(stats['hit_spacers_bad_pam_neg']) / stats['hit_spacers_neg'] * 100)
-'''
-	pos_pam_list = [ key[0] for key in pam_dict.keys() if key[1] == 1]
-	neg_pam_list = [ key[0] for key in pam_dict.keys() if key[1] == -1 ]
-
-	pos_nonpam_list = [ key[0] for key in non_pam_dict.keys() if key[1] == 1]
-	neg_nonpam_list = [ key[0] for key in non_pam_dict.keys() if key[1] == -1]
-
-	pos_pam_list = sorted(pos_pam_list)
-	neg_pam_list = sorted(neg_pam_list)
-
-	pos_nonpam_list = sorted(pos_nonpam_list)
-	neg_nonpam_list = sorted(neg_nonpam_list)
-
-	pos_pam_score_list = []
-	for key in pos_pam_list:
-		pos_pam_score_list.append(float(pam_dict[(key, 1)]) / stats['hit_spacers'])
-
-	neg_pam_score_list = []
-	for key in neg_pam_list:
-		neg_pam_score_list.append(float(pam_dict[(key, -1)]) / stats['hit_spacers'])
-
-	pos_nonpam_score_list = []
-	for key in pos_nonpam_list:
-		pos_nonpam_score_list.append(float(non_pam_dict[(key, 1)]) / stats['hit_spacers'])
-
-	neg_nonpam_score_list = []
-	for key in neg_nonpam_list:
-		neg_nonpam_score_list.append(float(non_pam_dict[(key, -1)]) / stats['hit_spacers'])
-
-	pyplot.figure(1)
-	pyplot.plot(pos_pam_list, pos_pam_score_list, 'bo', pos_nonpam_list, pos_nonpam_score_list, 'go')
-	pyplot.yscale('log')
-	pyplot.title('Template: ' + template + ' Tag: ' + tag)
-	pyplot.axis([0, len(seq.seq), 0, 1])
-	if args.o:
-		pyplot.savefig(args.o + '_pos.svg')
-	else:
-		pyplot.show()
-
-	pyplot.figure(2)
-	pyplot.plot(neg_pam_list, neg_pam_score_list, 'bo', neg_nonpam_list, neg_nonpam_score_list, 'go')
-	pyplot.yscale('log')
-	pyplot.title('Template: ' + template + ' Tag: ' + tag)
-	pyplot.axis([0, len(seq.seq), 0, 1])
-	if args.o:
-		pyplot.savefig(args.o + '_neg.svg')
-	else:
-		pyplot.show()
-'''
-
 	pam_dump_dict = {}
 	for key in pam_dict.keys():
 		assert(not pam_dump_dict.has_key(key[0] * key[1]))

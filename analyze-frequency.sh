@@ -4,7 +4,7 @@ OUT_DIR=out
 
 rm -fr ${OUT_DIR}/analysis/
 for experiment in $(ls ${OUT_DIR}/alignments/); do
-	for input in $(ls ${OUT_DIR}/alignments/${experiment}/*/*phiNM4*.gb); do
+	for input in $(ls ${OUT_DIR}/alignments/${experiment}/*phiNM4*.gb); do
 		name=$(basename ${input} .gb)
 		mkdir -p ${OUT_DIR}/analysis/${experiment}
 		output=${OUT_DIR}/analysis/${experiment}/${name}

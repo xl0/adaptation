@@ -39,20 +39,14 @@ class DoubleSeqIterable:
 		self.seqh = seqh
 		self.bad_spacer_fh = bad_spacer_fh
 		self.n = 0
-		self.hits = 0
-		self.misses = 0
-		self.last_hits = 0
-		self.last_misses = 0
 
 	def next(self):
 
 		while True:
 			seq = self.seqh.next()
 			str_seq = str(seq.seq)
-			if not self.n % 10000:
-				print self.n, self.hits, self.misses, self.last_hits, self.last_misses
-				self.last_hits = 0
-				self.last_misses = 0
+			if not self.n % 100000:
+				sys.stdout.write('.')
 
 #			if self.n > 100000:
 #				raise StopIteration
@@ -60,8 +54,6 @@ class DoubleSeqIterable:
 			self.n += 1
 			# Check if the spacer is in cache.
 			if found_spacer_dict.has_key(str_seq):
-				self.hits += 1
-				self.last_hits += 1
 				# Sequence does not align -> None
 				if found_spacer_dict[str_seq]:
 					for alignment in found_spacer_dict[str_seq]:
@@ -71,18 +63,12 @@ class DoubleSeqIterable:
 
 
 			else:
-				self.misses += 1
-				self.last_misses += 1
 				break
 
 		return (str_seq, self.n - 1)
 
 	def __iter__(self):
 		return self
-	def get_hits(self):
-		return self.hits
-	def get_misses(self):
-		return self.misses
 
 
 global shared_template_db
@@ -262,6 +248,7 @@ def main(argv):
 			print 'Loaded %s entries from alignment cache %s' % (len(found_spacer_dict), args.c)
 
 	print "Aligning spacer sequences from %s to %s." % (seqfh.name, ' '.join([x for x in template_db.keys()]))
+	print "(1 dot -> 100k sequences)"
 
 	iterable = DoubleSeqIterable(seqh, bad_spacer_fh)
 
@@ -285,12 +272,15 @@ def main(argv):
 			register_not_found(spacer_seq_str, bad_spacer_fh)
 			found_spacer_dict[spacer_seq_str] = None
 
-
+	print ""
 	print "Spacers analyzed: ", iterable.n
-	print "Cache hits: ", iterable.get_hits()
-	print "Cache misses: ", iterable.get_misses()
-
 	print "Processing collected data ..."
+
+	stats = {
+		'num_spacers' : iterable.n,
+		'num_aligned' : 0,
+		'template_hits' : defaultdict(int),
+	}
 
 	for alignment in spacer_db.keys():
 		template = alignment[0]
@@ -300,6 +290,10 @@ def main(argv):
 		start = alignment[1]
 		strand = alignment[2]
 		length = alignment[3]
+
+		stats['num_aligned'] += hits
+		stats['template_hits'][template] += hits
+
 
 		qualifiers = {
 			'hits' : hits,
@@ -314,6 +308,8 @@ def main(argv):
 
 		template_seq.features.append(SeqFeature(FeatureLocation(start, start+length),
 			type="Spacer", strand=strand, qualifiers=qualifiers))
+
+	
 
 	for template in template_db.values():
 		template_seq = template[0]
