@@ -245,9 +245,12 @@ def parse_water(stdout):
 
 	lines = stdout.splitlines()
 
-	i = 0
-	m = re.search('[1-9]+',lines[27])
-	score = int(m.group(0))
+	score_str = lines[27]
+	score = int(float((score_str.split()[2])))
+
+#	i = 0
+#	m = re.search('[1-9]+',lines[27])
+#	score = int(m.group(0))
 
 	#parse the position
 	query_position = map(lambda x: int(x),re.findall('[0-9]+',lines[32]))
@@ -263,8 +266,6 @@ def align(spacer, refseq):
 
 
 #	print len(spacer), str(spacer.seq)
-
-	outfile = "tmp/water-" + str(os.getpid()) + ".out"
 
 	args = [
 			"water",

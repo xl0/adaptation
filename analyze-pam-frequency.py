@@ -19,7 +19,7 @@ def main():
 	parser = argparse.ArgumentParser(description='Analyze spacer frequency')
 	parser.add_argument('input', metavar='<file.gb>', type=str,
 				help='Input file with PAMs and spacers annotated.')
-	parser.add_argument('-o', metavar='out_file_base', required=True)
+	parser.add_argument('-o', metavar='out_file.json', required=True)
 	args = parser.parse_args()
 
 	(direcotry, experiment, template, tag) = split_filename(args.input)
@@ -104,7 +104,7 @@ def main():
 		stats['hit_spacers_bad_pam'], float(stats['hit_spacers_bad_pam']) / stats['hit_spacers'] * 100,
 		stats['hit_spacers_bad_pam_pos'], float(stats['hit_spacers_bad_pam_pos']) / stats['hit_spacers_pos'] * 100,
 		stats['hit_spacers_bad_pam_neg'], float(stats['hit_spacers_bad_pam_neg']) / stats['hit_spacers_neg'] * 100)
-
+'''
 	pos_pam_list = [ key[0] for key in pam_dict.keys() if key[1] == 1]
 	neg_pam_list = [ key[0] for key in pam_dict.keys() if key[1] == -1 ]
 
@@ -152,7 +152,7 @@ def main():
 		pyplot.savefig(args.o + '_neg.svg')
 	else:
 		pyplot.show()
-
+'''
 
 	pam_dump_dict = {}
 	for key in pam_dict.keys():
@@ -164,7 +164,7 @@ def main():
 		assert(not non_pam_dump_dict.has_key(key[0] * key[1]))
 		non_pam_dump_dict[key[0] * key[1]] = non_pam_dict[key]
 
-	data_file = open(args.o + '.json', 'wr+')
+	data_file = open(args.o, 'wr+')
 	data = {
 		'stats' : stats,
 		'pams' : pam_dump_dict,
