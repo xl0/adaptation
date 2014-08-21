@@ -17,7 +17,7 @@ from utils import *
 def main():
 
 	parser = argparse.ArgumentParser(description='Analyze spacer frequency')
-	parser.add_argument('input', metavar='<file.gb>', type=str,
+	parser.add_argument('input', metavar='<file.json>', type=str,
 				help='Input file with PAMs and spacers annotated.')
 	parser.add_argument('-o', metavar='out_file.json', required=True)
 	args = parser.parse_args()
@@ -25,7 +25,6 @@ def main():
 	(direcotry, experiment, template, tag) = split_filename(args.input)
 
 	print 'Analyzing', args.input
-
 
 	fh = open(args.input)
 	seqh = SeqIO.parse(fh, "genbank")
@@ -47,8 +46,11 @@ def main():
 		  'hit_spacers_bad_pam_pos' : 0,
 		  'hit_spacers_bad_pam_neg' : 0,
 		  'pams' : 0,
+		  'pams_hits' : 0,
 		  'pams_pos' : 0,
-		  'pams_neg' : 0
+		  'pams_pos_hits' : 0,
+		  'pams_neg' : 0,
+		  'pams_neg_hits' : 0
 		}
 
 	for feature in seq.features:
@@ -88,6 +90,27 @@ def main():
 					stats['hit_spacers_bad_pam_neg'] += hits
 					non_pam_dict[int(feature.location.start) - 3, -1] += hits 
 
+
+
+
+	pam_dump_dict = {}
+	for key in pam_dict.keys():
+		assert(not pam_dump_dict.has_key(key[0] * key[1]))
+		if pam_dict[key] > 0:
+			if key[1] == 1:
+				stats['pams_pos_hits'] += 1
+			else:
+				stats['pams_neg_hits'] += 1
+		
+		pam_dump_dict[key[0] * key[1]] = pam_dict[key]
+
+	stats['pams_hits'] = stats['pams_pos_hits'] + stats['pams_neg_hits']
+
+	non_pam_dump_dict = {}
+	for key in non_pam_dict.keys():
+		assert(not non_pam_dump_dict.has_key(key[0] * key[1]))
+		non_pam_dump_dict[key[0] * key[1]] = non_pam_dict[key]
+
 	print 'Sequence contains %d PAMs. %d (%.2f %%) in the positive, and %d (%.2f %%) on the negative strand.' % (
 		stats['pams'],
 		stats['pams_pos'], float(stats['pams_pos']) / stats['pams'] * 100,
@@ -104,15 +127,12 @@ def main():
 		stats['hit_spacers_bad_pam'], float(stats['hit_spacers_bad_pam']) / stats['hit_spacers'] * 100,
 		stats['hit_spacers_bad_pam_pos'], float(stats['hit_spacers_bad_pam_pos']) / stats['hit_spacers_pos'] * 100,
 		stats['hit_spacers_bad_pam_neg'], float(stats['hit_spacers_bad_pam_neg']) / stats['hit_spacers_neg'] * 100)
-	pam_dump_dict = {}
-	for key in pam_dict.keys():
-		assert(not pam_dump_dict.has_key(key[0] * key[1]))
-		pam_dump_dict[key[0] * key[1]] = pam_dict[key]
+
+	print "%d (%.2f %%) ouf of %d pams were hit. %d (%.2f %%) of %d on positive strand, %d (%.2f %%) of %d on the negative." % (
+		stats['pams_hits'], float(stats['pams_hits']) / stats['pams'] * 100, stats['pams'],
+		stats['pams_pos_hits'], float(stats['pams_pos_hits']) / stats['pams_pos'] * 100, stats['pams_pos'],
+		stats['pams_neg_hits'], float(stats['pams_neg_hits']) / stats['pams_neg'] * 100, stats['pams_neg'])
 	
-	non_pam_dump_dict = {}
-	for key in non_pam_dict.keys():
-		assert(not non_pam_dump_dict.has_key(key[0] * key[1]))
-		non_pam_dump_dict[key[0] * key[1]] = non_pam_dict[key]
 
 	data_file = open(args.o, 'wr+')
 	data = {
@@ -121,6 +141,7 @@ def main():
 		'non_pams' : non_pam_dump_dict,
 		'experiment' : experiment,
 		'template' : template,
+		'template_len' : len(seq.seq),
 		'tag' : tag
 	}
 

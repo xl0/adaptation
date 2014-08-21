@@ -28,6 +28,12 @@ found_spacer_dict = {}
 #	value: number of hits
 spacer_db = defaultdict(int)
 
+stats = {
+	'num_spacers' : 0,
+	'num_aligned' : 0,
+	'num_not_aligned' : 0,
+	'template_hits' : defaultdict(int),
+}
 
 def register_not_found(seq, fh):
 	sr = SeqRecord(Seq(seq, generic_dna), id='')
@@ -51,15 +57,21 @@ class DoubleSeqIterable:
 #			if self.n > 100000:
 #				raise StopIteration
 
+			stats['num_spacers'] += 1
 			self.n += 1
 			# Check if the spacer is in cache.
 			if found_spacer_dict.has_key(str_seq):
 				# Sequence does not align -> None
 				if found_spacer_dict[str_seq]:
+					stats['num_aligned'] += 1
+					first_alignment = found_spacer_dict[str_seq][0]
+					template = first_alignment[0]
+					stats['template_hits'][template] += 1
 					for alignment in found_spacer_dict[str_seq]:
 						spacer_db[tuple(alignment)] += 1
 				else:
 					register_not_found(str_seq, self.bad_spacer_fh)
+					stats['num_not_aligned'] += 1
 
 
 			else:
@@ -265,22 +277,17 @@ def main(argv):
 		alignments = res[2]
 
 		if found:
+			stats['num_aligned'] += 1
+			stats['template_hits'][alignments[0][0]] += 1
 			for alignment in alignments:
 				spacer_db[tuple(alignment)] += 1
 			found_spacer_dict[spacer_seq_str] = alignments
 		else:
 			register_not_found(spacer_seq_str, bad_spacer_fh)
 			found_spacer_dict[spacer_seq_str] = None
+			stats['num_not_aligned'] += 1
 
-	print ""
-	print "Spacers analyzed: ", iterable.n
-	print "Processing collected data ..."
-
-	stats = {
-		'num_spacers' : iterable.n,
-		'num_aligned' : 0,
-		'template_hits' : defaultdict(int),
-	}
+	print "\nProcessing collected data ..."
 
 	for alignment in spacer_db.keys():
 		template = alignment[0]
@@ -290,10 +297,6 @@ def main(argv):
 		start = alignment[1]
 		strand = alignment[2]
 		length = alignment[3]
-
-		stats['num_aligned'] += hits
-		stats['template_hits'][template] += hits
-
 
 		qualifiers = {
 			'hits' : hits,
@@ -309,7 +312,14 @@ def main(argv):
 		template_seq.features.append(SeqFeature(FeatureLocation(start, start+length),
 			type="Spacer", strand=strand, qualifiers=qualifiers))
 
-	
+	print "Statiscits:"
+	print "Looked at %d spacers, %d aligned successfully (%d %%)" % (
+		stats['num_spacers'], stats['num_aligned'],
+		float(stats['num_aligned']) / stats['num_spacers'] * 100)
+	print "Hits by template:"
+	for template in stats['template_hits'].keys():
+		hits = stats['template_hits'][template]
+		print '%s : %d (%f %%)'  % (template, hits, float(hits) / stats['num_aligned'] * 100)
 
 	for template in template_db.values():
 		template_seq = template[0]
