@@ -73,15 +73,8 @@ def worker_function(arg):
 	annotate_spacers(seq1)
 	annotate_spacers(seq2)
 
-
-
 	spacers = extract_spacers(seq1, utags1[0]) + extract_spacers(seq2, utags2[0])
-
-#	if utags1[0] == 'GAC' and not len(spacers) == 2:
-#		print '======='
-#		show_sequence(seq1)
-#		show_sequence(seq2)
-		
+	
 	if len(spacers) > 2:
 		print "\nWTF? %d spacers?" % len(spacers)
 		show_sequence(seq1)

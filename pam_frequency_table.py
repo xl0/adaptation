@@ -31,7 +31,7 @@ def main():
 
 #	(direcotry, template, tag) = split_filename(args.input)
 
-	print 'Analyzing', ' '.join(args.input)
+	print 'Aggregatring', ' '.join(args.input)
 	
 	data = OrderedDict()
 	for i in args.input:

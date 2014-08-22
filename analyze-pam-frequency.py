@@ -141,10 +141,10 @@ def main():
 		'non_pams' : non_pam_dump_dict,
 		'experiment' : experiment,
 		'template' : template,
+		'template_seq' : str(seq.seq),
 		'template_len' : len(seq.seq),
 		'tag' : tag
 	}
-
 
 	json.dump(data, data_file, sort_keys=True, indent=4)
 	data_file.close()
