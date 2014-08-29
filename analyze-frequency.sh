@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OUT_DIR=../nas/Alex/out4
+OUT_DIR=out4
 
 rm -fr ${OUT_DIR}/analysis/
 
@@ -8,13 +8,15 @@ for experiment in $(ls ${OUT_DIR}/alignments/); do
 	for input in $(ls ${OUT_DIR}/alignments/${experiment}/1phiNM4gamma4*.gb); do
 		name=$(basename ${input} .gb)
 		mkdir -p ${OUT_DIR}/analysis/${experiment}
+		mkdir -p ${OUT_DIR}/analysis/${experiment}/${name}_motifs/
 		output=${OUT_DIR}/analysis/${experiment}/${name}
 
 		echo ""
 		./analyze-pam-frequency.py -o ${output}.json ${input} || exit 1
 
 		./graph_pam_frequency.py -o ${output}.svg ${output}.json
-		./graph_pam_motif.py -o ${output}_motif ${output}.json
+#		./graph_pam_motif.py -o ${output}_motifs/motif ${output}.json
+		./graph_spacer_distr.py -o ${output}-spacer_distr.svg ${output}.json
 
 	done
 	./pam_frequency_table.py ${OUT_DIR}/analysis/${experiment}/*.json \
@@ -24,7 +26,6 @@ for experiment in $(ls ${OUT_DIR}/alignments/); do
 	echo ""
 	./graph_pam_frequency.py -o ${OUT_DIR}/analysis/${experiment}-pam-hits.svg ${OUT_DIR}/analysis/${experiment}/*.json
 	./graph_pam_frequency_pairs.py -o ${OUT_DIR}/analysis/${experiment}-pam-hits-correlations.svg ${OUT_DIR}/analysis/${experiment}/*.json
-
 done
 
 ./pam_frequency_table.py ${OUT_DIR}/analysis/*/*.json -o ${OUT_DIR}/analysis/pam-hit-table.txt \

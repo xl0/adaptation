@@ -16,9 +16,9 @@ from utils import *
 
 def main():
 
-	parser = argparse.ArgumentParser(description='Analyze spacer frequency')
-	parser.add_argument('input', metavar='<file.json>', type=str,
-				help='Input file with PAMs and spacers annotated.')
+	parser = argparse.ArgumentParser(description='Process pam frequency data')
+	parser.add_argument('input', metavar='<file.gb>', type=str,
+				help='Genbank file with PAMs and spacers annotated.')
 	parser.add_argument('-o', metavar='out_file.json', required=True)
 	args = parser.parse_args()
 

@@ -16,7 +16,7 @@ def main():
 	parser.add_argument('-o', metavar='out_base', required=True)
 	args = parser.parse_args()
 
-	print 'Visualizing %s -> %s' % (args.input, args.o)
+	print 'Squence logos %s -> %s' % (args.input, args.o)
 
 	fd = open(args.input)
 	data = json.load(fd)

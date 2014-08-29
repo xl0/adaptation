@@ -7,11 +7,10 @@ import os
 from StringIO import StringIO
 from Bio import AlignIO
 from Bio import SeqIO
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
-from Bio.SeqFeature import SeqFeature, FeatureLocation
-
-from Bio.Emboss.Applications import WaterCommandline
+from Bio import Seq
+from Bio import SeqRecord
+from Bio import SeqFeature
+from Bio.SeqFeature import FeatureLocation
 
 devnull = open(os.devnull, "w")
 
